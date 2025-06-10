@@ -61,3 +61,13 @@ It computes both a **single-window PSD** (FFT) and a **Welch-averaged PSD**, the
   - Right channel → red line  
 
 Tap any datapoint to see “`{peakDb} dB @ {time}s`”.
+
+## Demo
+
+[![Peak Alpha Analyzer Demo](docs/demo-thumb.png)][
+
+> Click the image to watch a quick walkthrough of the app processing Muse/MindMonitor data.
+> 
+## Demo Video
+
+[![Watch the demo](https://img.youtube.com/vi/mDIf9wOj8SY/0.jpg)](https://youtube.com/shorts/mDIf9wOj8SY)
