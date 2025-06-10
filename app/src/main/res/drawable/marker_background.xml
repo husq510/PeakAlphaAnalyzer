@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- sfondo bianco leggermente traslucido -->
+    <solid android:color="#CCFFFFFF"/>
+    <!-- bordo grigio chiaro -->
+    <stroke
+        android:width="1dp"
+        android:color="#888888"/>
+    <!-- angoli arrotondati -->
+    <corners android:radius="4dp"/>
+    <!-- padding interno -->
+    <padding
+        android:left="4dp"
+        android:top="2dp"
+        android:right="4dp"
+        android:bottom="2dp"/>
+</shape>

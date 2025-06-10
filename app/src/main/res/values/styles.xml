@@ -1,0 +1,7 @@
+<resources>
+    <!-- Tema base della tua app, discende da AppCompat.Light.NoActionBar -->
+    <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
+        <!-- Personalizzazioni eventuali -->
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+</resources>
