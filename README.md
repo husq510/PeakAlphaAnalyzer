@@ -23,6 +23,20 @@ It computes both a **single-window PSD** (FFT) and a **Welch-averaged PSD**, the
 
 ---
 
+## MindMonitor settings
+
+To ensure consistent and reliable data capture when using MindMonitor in this project, please configure the following settings:
+Record Format: CSV
+Ensures compatibility with data analysis tools and easy importing into spreadsheets.
+
+Recording Interval: Constant
+Use a fixed sampling rate throughout the session to maintain uniform timing between samples.
+
+Other Settings: Default
+All remaining options (e.g., filters, thresholds, output paths) should be left at their default values unless you have a specific reason to adjust them.
+These settings will help standardize your recordings and simplify downstream processing of MindMonitor data.
+
+
 ## 🔬 How data is managed
 
 1. **Parsing & filtering**  
@@ -59,6 +73,19 @@ It computes both a **single-window PSD** (FFT) and a **Welch-averaged PSD**, the
 - **Series**:  
   - Left channel → blue line  
   - Right channel → red line  
+
+Tap any datapoint to see “`{peakDb} dB @ {time}s`”.
+
+## Demo
+
+[![Peak Alpha Analyzer Demo](docs/demo-thumb.png)][
+
+> Click the image to watch a quick walkthrough of the app processing Muse/MindMonitor data.
+> 
+## Demo Video
+
+[![Watch the demo](https://img.youtube.com/vi/mDIf9wOj8SY/0.jpg)](https://youtube.com/shorts/mDIf9wOj8SY)
+
 
 Tap any datapoint to see “`{peakDb} dB @ {time}s`”.
 
