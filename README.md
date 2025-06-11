@@ -70,6 +70,7 @@ These settings standardize your recordings and simplify downstream processing.
 
 Tap datapoints to view “`{peakDb} dB @ {time}s`”.
 
+
 ## Demo
 
 [![Peak Alpha Analyzer Demo](docs/demo-thumb.png)][
@@ -79,3 +80,6 @@ Tap datapoints to view “`{peakDb} dB @ {time}s`”.
 ## Demo Video
 
 [![Watch the demo](https://img.youtube.com/vi/mDIf9wOj8SY/0.jpg)](https://youtube.com/shorts/mDIf9wOj8SY)
+
+Built to help researchers & hobbyists quickly visualize alpha-band power from Muse EEG streams. 
+Feel free to open issues or submit pull requests. This project is released under the MIT License.
