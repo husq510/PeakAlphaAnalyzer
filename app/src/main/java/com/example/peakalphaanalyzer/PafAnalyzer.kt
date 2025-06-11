@@ -72,11 +72,31 @@ object PafAnalyzer {
         val leftRaw  = rows.map { it[22].toDouble() }.subList(start, end).toDoubleArray()
         val rightRaw = rows.map { it[23].toDouble() }.subList(start, end).toDoubleArray()
 
-        val spline   = SplineInterpolator()
-        val interpL  = spline.interpolate(tSeg.toDoubleArray(), leftRaw)
-        val interpR  = spline.interpolate(tSeg.toDoubleArray(), rightRaw)
-        val yL       = DoubleArray(tSeg.size) { interpL.value(tSeg[it]) }
-        val yR       = DoubleArray(tSeg.size) { interpR.value(tSeg[it]) }
+// remove exact duplicate timestamps, then sort strictly increasing
+        val pairedL = tSeg.zip(leftRaw.toList())
+            .distinctBy { it.first }
+            .sortedBy    { it.first }
+
+        val pairedR = tSeg.zip(rightRaw.toList())
+            .distinctBy { it.first }
+            .sortedBy    { it.first }
+
+        // if after dedup we have <2 points, bail out early
+        if (pairedL.size < 2 || pairedR.size < 2) {
+            throw CsvFormatException("Not enough unique timestamps to interpolate.")
+        }
+
+// Separate back into arrays for interpolation
+        val tUnique   = pairedL.map { it.first }.toDoubleArray()
+        val yLunique  = pairedL.map { it.second }.toDoubleArray()
+        val yRunique  = pairedR.map { it.second }.toDoubleArray()
+
+// Now interpolate on strictly increasing tUnique
+        val spline    = SplineInterpolator()
+        val interpL   = spline.interpolate(tUnique, yLunique)
+        val interpR   = spline.interpolate(tUnique, yRunique)
+        val yL        = DoubleArray(tUnique.size) { interpL.value(tUnique[it]) }
+        val yR        = DoubleArray(tUnique.size) { interpR.value(tUnique[it]) }
         val duration = tSeg.last() - tSeg.first()
 
         // FFT PAF (single-window)

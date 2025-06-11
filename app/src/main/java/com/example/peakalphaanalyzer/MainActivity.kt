@@ -198,7 +198,7 @@ class MainActivity : AppCompatActivity() {
             }
         }.start()
     }
-
+    
     private fun plot(
         chart: LineChart,
         seriesL: List<PafAnalyzer.PeakPoint>,
