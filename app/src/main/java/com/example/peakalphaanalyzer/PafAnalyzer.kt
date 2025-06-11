@@ -57,11 +57,107 @@ object PafAnalyzer {
         val rows = all.drop(1).filter { it.size > 37 && it[37] == "1" }
         if (rows.size < 2) throw CsvFormatException("No valid segment.")
 
-        // Parse times
+        // --- Parse timestamps ---
         val rawTs = rows.mapNotNull { it[0].takeIf { t -> t.isNotBlank() } }
-        val times = parseTimes(rawTs)
-        val dt = times[1] - times[0]
+        val timesAll = parseTimes(rawTs)
+
+        // Deduplicate & sort for fs estimation
+        val timesUniq = timesAll.distinct().sorted()
+        if (timesUniq.size < 2) throw CsvFormatException("Not enough unique timestamps.")
+
+        // Estimate sampling interval from median of all positive deltas
+        val deltas = timesUniq.zipWithNext()
+            .map { it.second - it.first }
+            .filter { it > 0.0 }
+        if (deltas.isEmpty()) throw CsvFormatException("Cannot estimate sampling rate.")
+        val sortedD = deltas.sorted()
+        val dt = if (sortedD.size % 2 == 0) {
+            val m = sortedD.size / 2
+            (sortedD[m - 1] + sortedD[m]) / 2.0
+        } else {
+            sortedD[sortedD.size / 2]
+        }
         val fs = 1.0 / dt
+
+        // --- Trim 10s at start/end using original timesAll ---
+        val startIdx = timesAll.indexOfFirst { it >= timesAll.first() + 10 }
+        val endIdx = timesAll.indexOfLast  { it <= timesAll.last()  - 10 }
+        if (startIdx < 0 || endIdx <= startIdx) throw CsvFormatException("Invalid interval after trimming.")
+
+        val tSeg = timesAll.subList(startIdx, endIdx)
+        val leftSeg  = rows.map { it[22].toDouble() }.subList(startIdx, endIdx).toDoubleArray()
+        val rightSeg = rows.map { it[23].toDouble() }.subList(startIdx, endIdx).toDoubleArray()
+
+        // --- Spline interpolation on de-duplicated segment ---
+        val pairedL = tSeg.zip(leftSeg.toList())
+            .distinctBy { it.first }
+            .sortedBy    { it.first }
+        val pairedR = tSeg.zip(rightSeg.toList())
+            .distinctBy { it.first }
+            .sortedBy    { it.first }
+        if (pairedL.size < 2 || pairedR.size < 2) throw CsvFormatException("Not enough unique segment timestamps.")
+
+        val tUnique  = pairedL.map { it.first }.toDoubleArray()
+        val yLuni    = pairedL.map   { it.second }.toDoubleArray()
+        val yRuni    = pairedR.map   { it.second }.toDoubleArray()
+
+        val spline   = SplineInterpolator()
+        val interpL  = spline.interpolate(tUnique, yLuni)
+        val interpR  = spline.interpolate(tUnique, yRuni)
+        val yL = DoubleArray(tUnique.size) { interpL.value(tUnique[it]) }
+        val yR = DoubleArray(tUnique.size) { interpR.value(tUnique[it]) }
+
+        val duration = tUnique.last() - tUnique.first()
+
+        // --- FFT PAF (single-window) ---
+        val (pL, tL) = fftPeak(yL, fs)
+        val (pR, tR) = fftPeak(yR, fs)
+        val meanF = (pL + pR) / 2.0
+        val medF  = median(pL, pR)
+
+        // --- Welch PAF (whole signal) ---
+        val wL = computeWelchPeak(yL, fs)
+        val wR = computeWelchPeak(yR, fs)
+        val meanW = (wL + wR) / 2.0
+        val medW  = median(wL, wR)
+
+        return PafResult(
+            fs = fs,
+            duration = duration,
+            pafL = pL, pafR = pR, pafMean = meanF, pafMedian = medF,
+            timeL = tL, timeR = tR,
+            welchL = wL, welchR = wR, welchMean = meanW, welchMedian = medW,
+            rawLeft = yL, rawRight = yR
+        )
+    }
+
+    fun analyze_old(stream: java.io.InputStream): PafResult {
+        val reader = CSVReader(InputStreamReader(stream))
+        val all = reader.readAll()
+        if (all.size <= 1) throw CsvFormatException("Empty CSV")
+
+        // Filter HeadBandOn=1
+        val rows = all.drop(1).filter { it.size > 37 && it[37] == "1" }
+        if (rows.size < 2) throw CsvFormatException("No valid segment.")
+
+// 1) Parse times come prima
+        val rawTs = rows.mapNotNull { it[0].takeIf { t -> t.isNotBlank() } }
+        val timesAll = parseTimes(rawTs)
+
+// 2) Rimuovo duplicati e ordino (serve per dt e per l’interpolazione)
+        val times = timesAll
+            .distinct()      // elimina i timestamp esatti ripetuti
+            .sorted()
+
+        if (times.size < 2) throw CsvFormatException("Not enough unique timestamps.")
+
+// 3) Ricalcolo dt e fs sul primo intervallo valido
+        val dt = times[1] - times[0]
+        if (dt <= 0) throw CsvFormatException("Invalid sampling interval.")
+        val fs = 1.0 / dt
+
+// 4) Ora uso 'times' (deduplicati e ordinati) per tutti i passi successivi
+//    incluso trimming, interpolazione e quant'altro.
 
         // Trim 10s at start/end
         val start = times.indexOfFirst { it >= times.first() + 10 }
@@ -287,7 +383,38 @@ object PafAnalyzer {
         val i0      = idxs.maxByOrNull { psdMean[it] } ?: return Double.NaN
         return 10 * log10(psdMean[i0])
     }
-    private fun parseTimes(raw: List<String>): List<Double> =
+
+
+
+    private fun parseTimes(raw: List<String>): List<Double> {
+        require(raw.size >= 2) { "Need at least two timestamps" }
+        return if (raw.first().matches(Regex("[-\\d.]+"))) {
+            val nums = raw.map(String::toDouble)
+            // estimate dt0
+            val dt0 = nums[1] - nums[0]
+            if (dt0 in 0.0..0.01) {
+                // values in ms → convert to seconds
+                nums.map { it / 1000.0 }
+            } else {
+                // already in seconds
+                nums
+            }
+        } else {
+            // ISO timestamps
+            val fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS")
+            val inst = raw.map { ts ->
+                LocalDateTime.parse(ts, fmt)
+                    .atZone(ZoneId.systemDefault())
+                    .toInstant()
+                    .toEpochMilli()
+            }
+            val t0 = inst.first()
+            inst.map { (it - t0) / 1000.0 }
+        }
+    }
+
+
+    private fun parseTimes_old(raw: List<String>): List<Double> =
         if (raw.first().matches(Regex("[-\\d.]+")))
             raw.map(String::toDouble)
         else {
