@@ -85,8 +85,17 @@ object PafAnalyzer {
         if (startIdx < 0 || endIdx <= startIdx) throw CsvFormatException("Invalid interval after trimming.")
 
         val tSeg = timesAll.subList(startIdx, endIdx)
-        val leftSeg  = rows.map { it[22].toDouble() }.subList(startIdx, endIdx).toDoubleArray()
-        val rightSeg = rows.map { it[23].toDouble() }.subList(startIdx, endIdx).toDoubleArray()
+        //val leftSeg  = rows.map { it[22].toDouble() }.subList(startIdx, endIdx).toDoubleArray()
+        //val rightSeg = rows.map { it[23].toDouble() }.subList(startIdx, endIdx).toDoubleArray()
+
+        // 6) Compute left/right as mean of two channels:
+        //    RAW_TP9 (idx 21) & RAW_AF7 (idx 22) → Left
+        //    RAW_AF8 (idx 23) & RAW_TP10(idx 24) → Right
+        val leftAll = rows.map { (it[21].toDouble() + it[22].toDouble()) / 2.0 }
+        val rightAll= rows.map { (it[23].toDouble() + it[24].toDouble()) / 2.0 }
+
+        val leftSeg  = leftAll.subList(startIdx, endIdx).toDoubleArray()
+        val rightSeg = rightAll.subList(startIdx, endIdx).toDoubleArray()
 
         // --- Spline interpolation on de-duplicated segment ---
         val pairedL = tSeg.zip(leftSeg.toList())
