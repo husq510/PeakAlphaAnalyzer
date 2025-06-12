@@ -1,6 +1,6 @@
 # 🧠 Peak Alpha Analyzer
 
-An Android app for visualizing alpha-band (8–13 Hz) peaks from **MindMonitor** CSV files recorded with the **Muse** headband.
+An Android app for visualizing alpha-band (8–12 Hz) peaks from **MindMonitor** CSV files recorded with the **Muse** headband.
 
 ---
 
@@ -13,7 +13,6 @@ An Android app for visualizing alpha-band (8–13 Hz) peaks from **MindMonitor**
 - 📊 **Interactive charts** (MPAndroidChart)  
   - FFT chart: cyan (L) & magenta (R)  
   - Welch chart: blue (L) & red (R)  
-  - Fixed Y-axis from –6 dB to +15 dB  
   - Tap any point to see “{peakDb} dB @ {time}s”  
 - ⚙️ **On-screen controls** for window size, sub-window size, and overlap  
 - 📝 **Numeric summary** + exact second each PAF occurs  
@@ -47,7 +46,7 @@ These settings standardize your recordings and simplify downstream processing.
    - Uniform resampling via Apache Commons Math `SplineInterpolator`  
    - Remove duplicate timestamps before interpolation  
 4. **PAF Computation**  
-   - **FFT PAF**: single-periodogram per window → PSD = |X|²/(fs·power(window)) → peak in 8–13 Hz → dB  
+   - **FFT PAF**: single-periodogram per window → PSD = |X|²/(fs·power(window)) → peak in 8–12 Hz → dB  
    - **Welch PAF**: split window into overlapping sub-windows → compute & average PSDs → peak → dB  
 
 ---
@@ -81,5 +80,5 @@ Tap datapoints to view “`{peakDb} dB @ {time}s`”.
 
 [![Watch the demo](https://img.youtube.com/vi/mDIf9wOj8SY/0.jpg)](https://youtube.com/shorts/mDIf9wOj8SY)
 
-Built to help researchers & hobbyists quickly visualize alpha-band power from Muse EEG streams. 
+Built to help researchers & hobbyists quickly visualize alpha peak in different ways from Muse EEG streams. 
 Feel free to open issues or submit pull requests. This project is released under the MIT License.
